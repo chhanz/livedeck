@@ -33,12 +33,20 @@ slides = [
 
 레이아웃별로 화면에 쓰이는 필드는 다르다 (출처: `build_deck.py` render_slide, `layouts.md`):
 
-| layout | 사용 필드 | 무시 필드 |
-|--------|-----------|-----------|
-| COVER | section(eyebrow) / title / subtitle | body |
-| SECTION | title | section / subtitle / body |
-| CONTENT | title / body(불릿) | section / subtitle |
-| CLOSING | title / subtitle | section / body |
+| layout | 사용 필드 |
+|--------|-----------|
+| COVER | section(eyebrow) / title / subtitle |
+| SECTION | section(eyebrow, 선택) / title |
+| CONTENT | title / body(불릿) |
+| IMAGE | title / variant / body / images[{src,caption}] |
+| STAT | title / items[{value, label, sub?, tone?}] |
+| CARDS | title / items[{icon?, title, body(str\|list)?, tone?}] |
+| TABLE | title / headers[] / rows[[]] (각 행 첫 셀은 강조) |
+| CALLOUT | title / tone / icon? / heading? / body(str\|list) |
+| COMPARE | title / left{heading,tone?,body[]} / right{...} |
+| CLOSING | title / subtitle |
+
+모든 텍스트 필드는 인라인 서식을 받는다: `**굵게**` / `==하이라이트==` / `` `코드` ``. tone 값: accent/info/success/warn/danger.
 
 - `id`는 1부터 연속.
 - `script`/`ref`는 모든 레이아웃에서 발표자 뷰로만 전달된다 (청중 화면 비표시).
@@ -51,10 +59,11 @@ slides = [
 LLM이 입력을 받았을 때 따르는 순서:
 
 1. **주제 분해** - 입력을 읽고 표지 / 구간 / 본문 / 마무리로 흐름을 나눈다.
-2. **레이아웃 배정** - 각 조각에 `layouts.md`의 자동 매핑 규칙으로 layout을 정한다.
-3. **필드 채우기** - 위 표에 따라 레이아웃별 필드만 채운다. 없는 정보는 비워 둔다.
+2. **레이아웃 배정** - 각 조각에 `layouts.md`의 자동 매핑 규칙으로 layout을 정한다. 표/수치/대조/경고는 전용 레이아웃(TABLE/STAT/COMPARE/CALLOUT)으로 살린다.
+3. **필드 채우기** - 레이아웃별 필드만 채운다. 텍스트에는 인라인 강조(`**굵게**`/`==하이라이트==`/`` `코드` ``)를 적극 쓴다. 없는 정보는 비워 둔다.
 4. **대본 작성** - 아래 "대본 생성" 규칙으로 각 슬라이드 `script`를 쓴다.
-5. **self-check** - id 연속성, 레이아웃별 필드 정합, 빈 슬라이드 여부를 점검한다. 빌드 후 `check_consistency.py`로 재확인한다.
+5. **테마 선택** - 발표 성격에 맞는 테마를 고른다(`themes/README.md`). slides.json 최상위 `"theme"` 키에 넣거나 빌드 시 `--theme` 로 전달.
+6. **self-check** - id 연속성, 레이아웃별 필드 정합, 빈 슬라이드 여부를 점검한다. 빌드 후 `check_consistency.py`로 재확인한다.
 
 ## 대본 생성
 

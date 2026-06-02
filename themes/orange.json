@@ -1,0 +1,33 @@
+{
+  "name": "orange",
+  "label": "Orange — 네이비+오렌지 톤",
+  "description": "잉크 네이비 + 오렌지 강조. 흰 캔버스, 절제된 그림자, 깔끔한 산세리프. 격식 있는 기술·기업 발표에 적합.",
+  "stage_bg": "#10131a",
+  "fonts": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin><link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap\" rel=\"stylesheet\">",
+  "vars": {
+    "--canvas": "#ffffff",
+    "--ink": "#232f3e",
+    "--charcoal": "#374151",
+    "--body": "#4b5563",
+    "--mute": "#9aa4b2",
+    "--surface-soft": "#f7f8fa",
+    "--surface-card": "#ffffff",
+    "--surface-dark": "#232f3e",
+    "--hairline": "#e3e7ec",
+    "--hairline-strong": "#c9d0d9",
+    "--accent": "#ec7211",
+    "--accent-strong": "#d35400",
+    "--accent-soft": "#fff3e6",
+    "--accent-ink": "#7a3d00",
+    "--info": "#0972d3", "--info-soft": "#eef6fd",
+    "--success": "#037f51", "--success-soft": "#e7f5ef",
+    "--warn": "#ec7211", "--warn-soft": "#fff3e6",
+    "--danger": "#d13212", "--danger-soft": "#fdece8",
+    "--mark-bg": "#ffd79a",
+    "--font-display": "'Inter', 'Noto Sans KR', system-ui, sans-serif",
+    "--font-body": "'Noto Sans KR', 'Inter', system-ui, sans-serif",
+    "--track-display": "-0.02em",
+    "--weight-display": "800"
+  },
+  "css": ".slide thead th { background: var(--ink); }\n.slide tbody th { background: var(--accent-soft); color: var(--accent-ink); }\n.slide[data-layout=\"SECTION\"] .rule { background: var(--accent); }"
+}

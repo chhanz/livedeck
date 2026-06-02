@@ -16,8 +16,8 @@
 ## 빠른 시작
 
 ```bash
-# 1. 예제 슬라이드로 deck 생성
-python3 scripts/build_deck.py examples/sample_slides.json sample-deck --title "Sample Deck"
+# 1. 예제 슬라이드로 deck 생성 (--theme: vivid(기본)/editorial/bold/orange)
+python3 scripts/build_deck.py examples/sample_slides.json sample-deck --title "Sample Deck" --theme vivid
 
 # 2. 정합성 검증
 python3 scripts/check_consistency.py sample-deck
@@ -40,11 +40,14 @@ python3 -m http.server 8000
 ## 입력 / 레이아웃
 
 - 입력: 텍스트, 마크다운.
-- 레이아웃: `COVER`, `CONTENT`, `SECTION`, `IMAGE`, `CLOSING`.
+- 레이아웃 10종: `COVER`, `SECTION`, `CONTENT`, `IMAGE`, `STAT`, `CARDS`, `TABLE`, `CALLOUT`, `COMPARE`, `CLOSING`.
+- 인라인 강조: `**굵게**`, `==하이라이트==`, `` `코드` ``.
 
-## 디자인 커스텀
+## 테마 / 디자인 커스텀
 
-`DESIGN.md`의 토큰 값을 바꾸면 두 뷰의 테마가 함께 바뀐다. 예를 들어 강조색을 바꾸려면 `primary` 값만 수정한다.
+- **테마 선택**: `--theme <name>` 또는 slides.json 의 `"theme"` 키. 기본 4종 — `vivid`(컬러 강조·범용), `editorial`(세리프·고급), `bold`(브루탈리스트), `orange`(네이비+오렌지). 각 테마가 폰트·팔레트·시그니처 장식을 통째로 바꾼다. (`themes/README.md`)
+- **고정 1920×1080 스테이지**: 슬라이드를 1920×1080 에 그리고 통째 스케일 → 어떤 화면에서도 픽셀 정합(리플로우 없음).
+- **새 테마/세부 토큰**: `themes/<name>.json` 추가 또는 기존 테마의 `vars` 수정. 토큰 의미는 `DESIGN.md`.
 
 ## 설치 (스킬로 사용)
 
