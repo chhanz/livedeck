@@ -36,6 +36,9 @@
       --warn: #d97706;       --warn-soft: #fffbeb;
       --danger: #dc2626;     --danger-soft: #fef2f2;
       --mark-bg: #fef08a;
+      /* CODE 블록 — 테마가 덮어쓸 수 있다 (기본: 어두운 코드창) */
+      --code-bg: #1e1e2e;
+      --code-fg: #cdd6f4;
       /* 라운드/그림자 — 테마가 brutalist면 0/하드섀도로 덮어쓴다. */
       --rounded-sm: 8px;
       --rounded-lg: 16px;
@@ -60,12 +63,14 @@
     /* 2) 테마 토큰 주입 (베이스를 덮어씀) */
     {{THEME_VARS}}
 
-    /* tone 매핑: data-tone 으로 컴포넌트 색을 고른다. */
-    [data-tone="accent"]  { --tone: var(--accent);  --tone-soft: var(--accent-soft);  --tone-ink: var(--accent-ink); }
-    [data-tone="info"]    { --tone: var(--info);    --tone-soft: var(--info-soft);    --tone-ink: #075985; }
-    [data-tone="success"] { --tone: var(--success); --tone-soft: var(--success-soft); --tone-ink: #14532d; }
-    [data-tone="warn"]    { --tone: var(--warn);    --tone-soft: var(--warn-soft);    --tone-ink: #78350f; }
-    [data-tone="danger"]  { --tone: var(--danger);  --tone-soft: var(--danger-soft);  --tone-ink: #7f1d1d; }
+    /* tone 매핑: data-tone 으로 컴포넌트 색을 고른다.
+       --tone: 보더·아이콘·바 등 면적 작은 강조 / --tone-strong: 흰 배경 위 텍스트(WCAG AA ≥4.5:1) /
+       --tone-soft: 옅은 배경 / --tone-ink: 옅은 배경 위 텍스트. */
+    [data-tone="accent"]  { --tone: var(--accent);  --tone-strong: var(--accent-strong); --tone-soft: var(--accent-soft);  --tone-ink: var(--accent-ink); }
+    [data-tone="info"]    { --tone: var(--info);    --tone-strong: #0369a1; --tone-soft: var(--info-soft);    --tone-ink: #075985; }
+    [data-tone="success"] { --tone: var(--success); --tone-strong: #15803d; --tone-soft: var(--success-soft); --tone-ink: #14532d; }
+    [data-tone="warn"]    { --tone: var(--warn);    --tone-strong: #b45309; --tone-soft: var(--warn-soft);    --tone-ink: #78350f; }
+    [data-tone="danger"]  { --tone: var(--danger);  --tone-strong: #b91c1c; --tone-soft: var(--danger-soft);  --tone-ink: #7f1d1d; }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -172,7 +177,8 @@
       border-radius: var(--rounded-lg); box-shadow: var(--shadow-card);
       padding: 40px 36px; display: flex; flex-direction: column; gap: 10px;
     }
-    .stat-value { font-family: var(--font-display); font-weight: var(--weight-display); font-size: 88px; line-height: 1; letter-spacing: var(--track-display); color: var(--tone, var(--accent)); }
+    /* 수치는 흰 배경 위 텍스트이므로 --tone-strong(어두운 변종)으로 WCAG AA 대비 확보 */
+    .stat-value { font-family: var(--font-display); font-weight: var(--weight-display); font-size: 88px; line-height: 1; letter-spacing: var(--track-display); color: var(--tone-strong, var(--accent-strong)); }
     .stat-label { font-size: 28px; font-weight: 600; color: var(--ink); }
     .stat-sub { font-size: 20px; color: var(--body); }
 
@@ -191,14 +197,27 @@
     .card-body li { margin: 10px 0; font-size: 24px; color: var(--charcoal); }
     .card-body p { margin: 0; }
 
-    /* TABLE */
-    .table-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 0; }
-    .slide table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: var(--rounded-lg); box-shadow: var(--shadow-card); font-size: 27px; }
-    .slide thead th { background: var(--accent); color: var(--on-dark); font-weight: 700; text-align: left; padding: 26px 28px; line-height: 1.25; }
+    /* TABLE — 행 수에 따라 폰트·패딩을 단계 축소해 제목 아래 영역에 항상 들어가게 한다.
+       table-wrap 은 위(flex-start) 정렬이라 넘쳐도 제목을 가리지 않고, 변수로 밀도를 제어한다. */
+    .table-wrap {
+      flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 0;
+      --tbl-font: 27px; --tbl-pad-y: 22px; --tbl-pad-x: 28px; --tbl-head-pad-y: 26px;
+    }
+    .slide table {
+      width: 100%; border-collapse: collapse; overflow: hidden;
+      border-radius: var(--rounded-lg); box-shadow: var(--shadow-card); font-size: var(--tbl-font);
+    }
+    .slide thead th { background: var(--accent); color: var(--on-dark); font-weight: 700; text-align: left; padding: var(--tbl-head-pad-y) var(--tbl-pad-x); line-height: 1.25; }
     .slide tbody th { background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; text-align: left; }
     .slide tbody td { color: var(--charcoal); }
-    .slide tbody th, .slide tbody td { padding: 22px 28px; border-top: 1px solid var(--hairline); line-height: 1.4; vertical-align: top; }
+    .slide tbody th, .slide tbody td { padding: var(--tbl-pad-y) var(--tbl-pad-x); border-top: 1px solid var(--hairline); line-height: 1.35; vertical-align: top; }
     .slide tbody tr:nth-child(even) td { background: var(--surface-soft); }
+    /* 행 수 구간별 밀도 자동 조절 (build_deck.py 가 .table-wrap[data-rows] 부여) */
+    .table-wrap[data-rows="7"], .table-wrap[data-rows="8"] { --tbl-font: 23px; --tbl-pad-y: 15px; --tbl-head-pad-y: 18px; }
+    .table-wrap[data-rows="9"], .table-wrap[data-rows="10"] { --tbl-font: 21px; --tbl-pad-y: 11px; --tbl-pad-x: 24px; --tbl-head-pad-y: 14px; }
+    .table-wrap[data-rows="11"], .table-wrap[data-rows="12"] { --tbl-font: 18px; --tbl-pad-y: 8px; --tbl-pad-x: 20px; --tbl-head-pad-y: 11px; }
+    /* 13행 이상은 더 촘촘히 (그래도 넘치면 콘텐츠를 나눠야 한다 — layouts.md 안내) */
+    .table-wrap[data-rows="13"], .table-wrap[data-rows="14"], .table-wrap[data-rows="15"] { --tbl-font: 16px; --tbl-pad-y: 6px; --tbl-pad-x: 18px; --tbl-head-pad-y: 9px; }
 
     /* CALLOUT */
     .slide[data-layout="CALLOUT"] { justify-content: center; }
@@ -237,7 +256,11 @@
       padding: 0 var(--pad-x); font-size: 20px; line-height: 1; color: var(--body);
       border-top: 1px solid var(--hairline); background: var(--canvas);
     }
-    .deck-footer .center { position: absolute; left: 50%; transform: translateX(-50%); }
+    /* left(카피라이트)가 길어도 center(페이지번호)를 침범하지 않도록 너비를 캡하고,
+       넘치면 말줄임 처리한다. center 는 화면 정중앙 고정, right 는 로고 영역. */
+    .deck-footer .left { min-width: 0; max-width: calc(50% - 90px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .deck-footer .center { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+    .deck-footer .right { flex: 0 0 auto; }
     .deck-footer img { max-height: 36px; width: auto; }
     /* COVER/CLOSING 에서는 footer 숨김 */
     .slide[data-layout="COVER"].active ~ .deck-footer,
@@ -269,7 +292,7 @@
     .slide.active li:nth-child(3), .slide.active .stat:nth-child(3), .slide.active .card:nth-child(3), .slide.active tbody tr:nth-child(3), .slide.active .img-grid figure:nth-child(3) { animation-delay: 0.30s; }
     .slide.active li:nth-child(4), .slide.active .stat:nth-child(4), .slide.active .card:nth-child(4), .slide.active tbody tr:nth-child(4) { animation-delay: 0.38s; }
     .slide.active li:nth-child(5), .slide.active .stat:nth-child(5), .slide.active .card:nth-child(5), .slide.active tbody tr:nth-child(5) { animation-delay: 0.46s; }
-    .slide.active li:nth-child(n+6), .slide.active .stat:nth-child(n+6), .slide.active tbody tr:nth-child(n+6) { animation-delay: 0.54s; }
+    .slide.active li:nth-child(n+6), .slide.active .stat:nth-child(n+6), .slide.active .card:nth-child(n+6), .slide.active tbody tr:nth-child(n+6), .slide.active .img-grid figure:nth-child(n+4) { animation-delay: 0.54s; }
     .slide.active .callout { animation-delay: 0.16s; }
     .slide.active .tl-step:nth-child(1) { animation-delay: 0.14s; }
     .slide.active .tl-step:nth-child(2) { animation-delay: 0.24s; }
@@ -314,14 +337,14 @@
     .slide[data-layout="CODE"] { justify-content: flex-start; }
     .code-intro { font-size: 28px; color: var(--body); margin-bottom: 28px; line-height: 1.4; }
     .code-block {
-      flex: 1; min-height: 0; background: #1e1e2e; border-radius: var(--rounded-lg);
+      flex: 1; min-height: 0; background: var(--code-bg); border-radius: var(--rounded-lg);
       box-shadow: var(--shadow-card); padding: 40px 44px; overflow: hidden;
       display: flex; flex-direction: column; justify-content: center;
     }
     .code-block pre { margin: 0; display: flex; flex-direction: column; gap: 4px; }
     .code-line {
       font-family: var(--font-code); font-size: 28px; line-height: 1.5;
-      color: #cdd6f4; white-space: pre; tab-size: 2;
+      color: var(--code-fg); white-space: pre; tab-size: 2;
     }
 
     /* 3) 테마 시그니처 장식 CSS 주입 */

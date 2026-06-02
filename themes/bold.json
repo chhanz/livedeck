@@ -24,6 +24,8 @@
     "--warn": "#d97706", "--warn-soft": "#fff0d6",
     "--danger": "#e8330f", "--danger-soft": "#ffe9e4",
     "--mark-bg": "#ffe14d",
+    "--code-bg": "#111111",
+    "--code-fg": "#f5f5f5",
     "--font-display": "'Archivo Black', 'Black Han Sans', 'Noto Sans KR', sans-serif",
     "--font-body": "'Archivo', 'Noto Sans KR', system-ui, sans-serif",
     "--font-code": "'JetBrains Mono', ui-monospace, monospace",

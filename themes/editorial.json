@@ -24,6 +24,8 @@
     "--warn": "#9a6a1f", "--warn-soft": "#f2e8d4",
     "--danger": "#9a3b2f", "--danger-soft": "#f2e0db",
     "--mark-bg": "#e89cb1",
+    "--code-bg": "#2b2a26",
+    "--code-fg": "#e8e2d2",
     "--font-display": "'Fraunces', 'Noto Serif KR', Georgia, serif",
     "--font-body": "'Noto Serif KR', 'Fraunces', Georgia, serif",
     "--font-code": "'JetBrains Mono', ui-monospace, monospace",
