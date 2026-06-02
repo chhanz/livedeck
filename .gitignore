@@ -1,0 +1,14 @@
+# 내부 설계 문서 (공개 제외)
+DESIGN-PLAN.md
+
+# OS / 에디터
+.DS_Store
+*.swp
+*~
+
+# 빌드 산출물
+*-deck/
+
+# Python 캐시
+__pycache__/
+*.pyc

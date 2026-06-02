@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="{{LANG}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{TITLE}}</title>
+  <style>
+    /* THEME: 아래 값은 DESIGN.md 토큰을 그대로 반영한다. DESIGN.md 변경 시 재주입. */
+    :root {
+      --canvas: #ffffff;
+      --primary: #000000;
+      --ink: #000000;
+      --charcoal: #525252;
+      --body: #737373;
+      --mute: #a3a3a3;
+      --surface-soft: #fafafa;
+      --surface-dark: #171717;
+      --hairline: #e5e5e5;
+      --hairline-strong: #d4d4d4;
+      --rounded-lg: 12px;
+      --rounded-full: 9999px;
+      --font-display: 'Noto Sans KR', 'Nunito', 'Inter', system-ui, sans-serif;
+      --font-body: 'Noto Sans KR', 'Inter', system-ui, sans-serif;
+      --font-code: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%; background: var(--canvas); color: var(--ink);
+      font-family: var(--font-body); overflow: hidden;
+    }
+    .deck { position: fixed; inset: 0; }
+
+    /* 16:9 풀스크린 슬라이드. 한 번에 하나만 표시. */
+    .slide {
+      position: absolute; inset: 0;
+      display: none; flex-direction: column;
+      padding: 6.5vh 8vw;
+      background: var(--canvas);
+    }
+    .slide.active { display: flex; }
+
+    .slide .eyebrow {
+      font-size: 0.95rem; font-weight: 600; letter-spacing: 0.04em;
+      color: var(--body); text-transform: uppercase; margin-bottom: 1.4vh;
+    }
+    .slide h1 {
+      font-family: var(--font-display); font-weight: 600;
+      font-size: clamp(2rem, 5.2vw, 4.4rem); line-height: 1.08; color: var(--ink);
+    }
+    .slide h2 {
+      font-family: var(--font-display); font-weight: 600;
+      font-size: clamp(1.6rem, 3.6vw, 3rem); line-height: 1.14; color: var(--ink);
+      margin-bottom: 3vh;
+    }
+    .slide .subtitle {
+      font-size: clamp(1.1rem, 1.9vw, 1.6rem); color: var(--body);
+      margin-top: 2.4vh; max-width: 60ch;
+    }
+    .slide ul { list-style: none; margin-top: 1vh; }
+    .slide li {
+      position: relative; padding-left: 1.6em; margin: 1.6vh 0;
+      font-size: clamp(1.05rem, 1.9vw, 1.7rem); color: var(--charcoal); line-height: 1.45;
+    }
+    .slide li::before {
+      content: ""; position: absolute; left: 0; top: 0.62em;
+      width: 0.5em; height: 0.5em; border-radius: var(--rounded-full); background: var(--primary);
+    }
+
+    /* COVER: 중앙 정렬, footer 자동 숨김 */
+    .slide[data-layout="COVER"] { justify-content: center; align-items: flex-start; }
+    .slide[data-layout="COVER"] .subtitle { margin-top: 3vh; }
+
+    /* SECTION: 챕터 구분. 큰 타이틀 + 가는 헤어라인 */
+    .slide[data-layout="SECTION"] { justify-content: center; }
+    .slide[data-layout="SECTION"] .rule {
+      width: 7vw; height: 2px; background: var(--primary); margin-bottom: 3vh;
+    }
+
+    /* CONTENT: 제목은 상단 고정, 본문(불릿)은 남은 공간 세로 중앙 */
+    .slide[data-layout="CONTENT"] { justify-content: flex-start; }
+    .slide[data-layout="CONTENT"] ul {
+      flex: 1; display: flex; flex-direction: column; justify-content: center;
+    }
+
+    /* CLOSING: 마무리/CTA. 반전 surface 한 번 허용 */
+    .slide[data-layout="CLOSING"] {
+      justify-content: center; align-items: flex-start;
+      background: var(--surface-dark); color: #ffffff;
+    }
+    .slide[data-layout="CLOSING"] h1 { color: #ffffff; }
+    .slide[data-layout="CLOSING"] .subtitle { color: rgba(255,255,255,0.7); }
+
+    /* IMAGE: 텍스트 + 이미지 레이아웃. CSS Grid 2분할, variant 로 좌우/풀블리드 토글.
+       모노크롬 유지: 색 대신 크기/굵기/여백/opacity 로 위계 표현. footer 는 평소대로 표시. */
+    .slide.active[data-layout="IMAGE"] {
+      display: grid; justify-content: stretch; align-content: center;
+      grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr;
+      column-gap: 4vw; row-gap: 2vh;
+    }
+    /* 제목은 두 칼럼에 걸쳐 상단에 둔다. */
+    .slide[data-layout="IMAGE"] h2 { grid-column: 1 / -1; margin-bottom: 0; }
+    /* 텍스트(불릿)와 이미지 그리드는 두 번째 행에 나란히. */
+    .slide[data-layout="IMAGE"] ul {
+      grid-row: 2; margin-top: 0;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .slide[data-layout="IMAGE"] .img-grid { grid-row: 2; }
+    /* right(기본): 왼쪽 텍스트, 오른쪽 이미지. */
+    .slide[data-layout="IMAGE"][data-variant="right"] ul { grid-column: 1; }
+    .slide[data-layout="IMAGE"][data-variant="right"] .img-grid { grid-column: 2; }
+    /* left: 왼쪽 이미지, 오른쪽 텍스트. */
+    .slide[data-layout="IMAGE"][data-variant="left"] .img-grid { grid-column: 1; }
+    .slide[data-layout="IMAGE"][data-variant="left"] ul { grid-column: 2; }
+    /* full: 2분할 없음. 제목 상단, 이미지 그리드가 본문 전체를 차지. body 는 렌더 안 함. */
+    .slide[data-layout="IMAGE"][data-variant="full"] { grid-template-columns: 1fr; }
+    .slide[data-layout="IMAGE"][data-variant="full"] .img-grid { grid-column: 1; grid-row: 2; }
+
+    /* 이미지 그리드: 수량에 종속되지 않는 auto-fit. 단일 이미지면 한 칸을 꽉 채운다. */
+    .img-grid {
+      display: grid; gap: 2vh 2vw; align-content: center;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      min-height: 0;
+    }
+    .img-grid figure {
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .img-grid img {
+      width: 100%; min-height: 0; max-height: 64vh;
+      object-fit: contain; object-position: center;
+    }
+    /* 캡션: 얇은 1px 룰 + 소형 muted 텍스트 (Nordic 패턴). */
+    .img-grid figcaption {
+      margin-top: 1vh; padding-top: 0.8vh; border-top: 1px solid var(--hairline);
+      font-size: 0.85rem; line-height: 1.4; color: var(--body);
+    }
+
+    /* footer (선택적 on-off). 전 슬라이드에 동일하게 표시한다. */
+    .deck-footer {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.7em 8vw; font-size: 0.8rem; line-height: 1; color: var(--body);
+      border-top: 1px solid var(--hairline); background: var(--canvas);
+    }
+    .deck-footer .center { position: absolute; left: 50%; transform: translateX(-50%); }
+    .deck-footer img { max-height: 1.6em; width: auto; }
+
+    .progress-track { position: fixed; left: 0; right: 0; bottom: 0; height: 3px; background: transparent; }
+    .progress-bar { height: 100%; width: 0; background: var(--primary); transition: width 0.25s ease; }
+
+    /* 펜·스포트라이트 오버레이 (수신 렌더 전용). 입력을 받지 않는다. */
+    .annot-overlay { position: fixed; inset: 0; pointer-events: none; }
+    #penCanvas { z-index: 80; }
+    #spotCanvas { z-index: 81; }
+
+    /* 인쇄 전용 페이지 번호 요소 (beforeprint 시 각 슬라이드에 주입). 화면에서는 숨김. */
+    .print-pageno { display: none; }
+
+    /* ── PDF export (Phase B): 브라우저 네이티브 인쇄. 청중 슬라이드만, 1슬라이드 = 1페이지 ── */
+    @media print {
+      /* 16:9 가로 페이지를 물리 단위로 고정. 297:167 ≈ 1.778 (16:9에 거의 정확).
+         vh/vw 로 잡으면 인쇄 페이지 높이보다 미세하게 넘쳐 빈 페이지가 생기므로 mm 로 고정한다. */
+      @page { size: 297mm 167mm; margin: 0; }
+      html, body { height: auto; overflow: visible; background: #fff; }
+      .deck { position: static; inset: auto; }
+
+      /* 평소 .active 만 보이지만, 인쇄 시 모든 슬라이드를 각각 한 페이지로 펼친다.
+         페이지와 동일한 물리 단위 + overflow hidden 으로 페이지 넘침(빈 페이지)을 막는다. */
+      .slide {
+        display: flex !important;
+        position: relative; inset: auto;
+        width: 297mm; height: 167mm; overflow: hidden;
+        break-after: page; page-break-after: always;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+      /* 마지막 슬라이드 뒤 백지 방지: break 제거. */
+      .slide:last-child { break-after: auto; page-break-after: auto; }
+
+      /* IMAGE 는 화면과 동일하게 grid 유지(.slide display:flex !important 를 되돌린다).
+         이미지는 max-height 를 페이지 높이에 맞춰 잘리지 않게 한다. */
+      .slide[data-layout="IMAGE"] { display: grid !important; }
+      .slide[data-layout="IMAGE"] .img-grid img { max-height: 120mm; }
+
+      /* 화면 전용 요소 인쇄 숨김 (펜/스포트 주석 캔버스 포함 -> 주석 미포함 자동 충족).
+         화면용 footer(.deck-footer)도 숨긴다. 인쇄 페이지 번호는 .print-pageno 가 슬라이드마다 담당. */
+      .progress-track, .annot-overlay, #penCanvas, #spotCanvas, .deck-footer { display: none !important; }
+
+      /* 인쇄 시 각 슬라이드에 페이지 번호 표기 (예: 3 / 12). footer 유무와 무관하게 동작. */
+      .print-pageno {
+        display: block; position: absolute; right: 8vw; bottom: 4vh;
+        font-size: 0.8rem; color: var(--body);
+      }
+      /* CLOSING 은 어두운 배경이라 페이지 번호를 밝게. */
+      .slide[data-layout="CLOSING"] .print-pageno { color: rgba(255,255,255,0.7); }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+    {{SLIDES}}
+  </div>
+
+  {{FOOTER}}
+
+  <canvas class="annot-overlay" id="penCanvas"></canvas>
+  <canvas class="annot-overlay" id="spotCanvas"></canvas>
+
+  <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+
+  <script>
+    /* livedeck 동기화 계약 (DESIGN-PLAN.md 섹션 5). 청중 뷰 = 수신 전용. */
+    var CHANNEL = 'livedeck-sync';
+    var TOTAL_SLIDES = {{TOTAL_SLIDES}};
+    /* 동기화 전송 계층 (경계)
+       BroadcastChannel = 같은 브라우저 내 탭/창 동기화 (서버리스).
+       원격(webinar) 전환 시 아래 두 함수 내부만 교체하면 된다.
+       호출부는 syncSend / syncOnMessage 만 사용할 것. */
+    var channel = new BroadcastChannel(CHANNEL);
+    function syncSend(msg) { channel.postMessage(msg); }
+    function syncOnMessage(handler) { channel.onmessage = function (e) { handler(e.data); }; }
+    /* 전송 계층 경계 끝 */
+
+    function clampSlide(n) {
+      n = parseInt(n, 10) || 1;
+      return Math.min(Math.max(1, n), TOTAL_SLIDES);
+    }
+
+    function goToSlide(n, persist) {
+      n = clampSlide(n);
+      var slides = document.querySelectorAll('.slide');
+      for (var i = 0; i < slides.length; i++) {
+        slides[i].classList.toggle('active', parseInt(slides[i].getAttribute('data-slide'), 10) === n);
+      }
+      var bar = document.getElementById('progressBar');
+      if (bar) bar.style.width = (n / TOTAL_SLIDES * 100) + '%';
+      var pageEl = document.querySelector('.deck-footer .page');
+      if (pageEl) pageEl.textContent = n + ' / ' + TOTAL_SLIDES;
+      if (persist) {
+        if (location.hash !== '#' + n) history.replaceState(null, '', '#' + n);
+        try { localStorage.setItem('livedeck-current', String(n)); } catch (e) {}
+      }
+    }
+
+    /* 5.6 복원 우선순위: URL 해시 > localStorage > 1 */
+    function initialSlide() {
+      var fromHash = parseInt(location.hash.replace('#', ''), 10);
+      if (fromHash) return clampSlide(fromHash);
+      var stored = null;
+      try { stored = parseInt(localStorage.getItem('livedeck-current'), 10); } catch (e) {}
+      return clampSlide(stored || 1);
+    }
+
+    /* ── 펜·스포트라이트 (청중 = 수신 렌더 전용. 절대 송신하지 않는다) ──
+       정규화 좌표(0~1)를 자기 화면 크기에 맞게 복원해 그린다. */
+    var annot = (function () {
+      var penCanvas = document.getElementById('penCanvas');
+      var spotCanvas = document.getElementById('spotCanvas');
+      var penCtx = penCanvas.getContext('2d');
+      var spotCtx = spotCanvas.getContext('2d');
+
+      function sizeCanvas(cv) {
+        cv.width = window.innerWidth;
+        cv.height = window.innerHeight;
+      }
+      function resizeAll() { sizeCanvas(penCanvas); sizeCanvas(spotCanvas); }
+      window.addEventListener('resize', resizeAll);
+      resizeAll();
+
+      function drawSegment(points, color) {
+        if (!points || points.length < 1) return;
+        penCtx.strokeStyle = color || '#e00';
+        penCtx.lineWidth = 3;
+        penCtx.lineJoin = 'round';
+        penCtx.lineCap = 'round';
+        penCtx.beginPath();
+        for (var i = 0; i < points.length; i++) {
+          var px = points[i][0] * penCanvas.width;
+          var py = points[i][1] * penCanvas.height;
+          if (i === 0) penCtx.moveTo(px, py); else penCtx.lineTo(px, py);
+        }
+        penCtx.stroke();
+      }
+      function drawSpot(x, y) {
+        spotCtx.clearRect(0, 0, spotCanvas.width, spotCanvas.height);
+        spotCtx.save();
+        spotCtx.fillStyle = 'rgba(0,0,0,0.55)';
+        spotCtx.fillRect(0, 0, spotCanvas.width, spotCanvas.height);
+        spotCtx.globalCompositeOperation = 'destination-out';
+        spotCtx.beginPath();
+        spotCtx.arc(x * spotCanvas.width, y * spotCanvas.height, 0.12 * spotCanvas.width, 0, Math.PI * 2);
+        spotCtx.fill();
+        spotCtx.restore();
+      }
+      function clearSpot() { spotCtx.clearRect(0, 0, spotCanvas.width, spotCanvas.height); }
+      function clearPen() { penCtx.clearRect(0, 0, penCanvas.width, penCanvas.height); }
+      function clearAll() { clearPen(); clearSpot(); }
+
+      return { drawSegment: drawSegment, drawSpot: drawSpot, clearSpot: clearSpot, clearAll: clearAll };
+    })();
+
+    /* 청중 뷰는 수신만 한다. 절대 송신하지 않는다 (echo 루프 차단). */
+    syncOnMessage(function (data) {
+      if (!data) return;
+      if (data.type === 'slideChange') {
+        annot.clearAll();   /* 넘김 시 그림 클리어 (clear 메시지 유실 대비 이중 안전) */
+        goToSlide(data.slide, true);
+      } else if (data.type === 'draw' && data.mode === 'pen') {
+        annot.drawSegment(data.points, data.color);
+      } else if (data.type === 'spotlight') {
+        if (data.on) annot.drawSpot(data.x, data.y); else annot.clearSpot();
+      } else if (data.type === 'clear') {
+        annot.clearAll();
+      }
+    });
+
+    /* 전체화면 토글 (F 키 또는 더블클릭). 청중/발표자 각자 로컬에서 토글한다. */
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        (document.documentElement.requestFullscreen || function () {})
+          .call(document.documentElement);
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+    document.addEventListener('dblclick', function () { toggleFullscreen(); });
+
+    /* 단독 열람 시 로컬 이동 허용. 단, slideChange 를 broadcast 하지 않는다. */
+    document.addEventListener('keydown', function (e) {
+      var cur = clampSlide((location.hash.replace('#', '')) || 1);
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goToSlide(cur + 1, true); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); goToSlide(cur - 1, true); }
+      else if (e.key === 'Home') { e.preventDefault(); goToSlide(1, true); }
+      else if (e.key === 'End') { e.preventDefault(); goToSlide(TOTAL_SLIDES, true); }
+      else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
+    });
+
+    goToSlide(initialSlide(), true);
+
+    /* ── PDF export (Phase B): 인쇄 직전 각 슬라이드에 페이지 번호(현재 / 전체)를 주입 ──
+       footer 유무와 무관하게 동작. 인쇄 후 제거해 화면 상태를 원복한다. */
+    function addPrintPageNumbers() {
+      removePrintPageNumbers();
+      var slides = document.querySelectorAll('.slide');
+      for (var i = 0; i < slides.length; i++) {
+        var n = parseInt(slides[i].getAttribute('data-slide'), 10);
+        var tag = document.createElement('div');
+        tag.className = 'print-pageno';
+        tag.textContent = n + ' / ' + TOTAL_SLIDES;
+        slides[i].appendChild(tag);
+      }
+    }
+    function removePrintPageNumbers() {
+      var tags = document.querySelectorAll('.print-pageno');
+      for (var i = 0; i < tags.length; i++) tags[i].parentNode.removeChild(tags[i]);
+    }
+    window.addEventListener('beforeprint', addPrintPageNumbers);
+    window.addEventListener('afterprint', removePrintPageNumbers);
+
+    /* 5.5 핸드셰이크: 로드되면 현재 위치를 발표자에게 질의 */
+    syncSend({ type: 'requestSync' });
+  </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+{
+  "footer": {
+    "enabled": true,
+    "logo_path": "",
+    "copyright": "Example Org",
+    "page_number": true
+  },
+  "slides": [
+    {
+      "id": 1,
+      "layout": "COVER",
+      "section": "Sample Deck",
+      "title": "livedeck 소개",
+      "subtitle": "발표자 대본과 청중 슬라이드를 함께 만드는 듀얼 뷰 도구",
+      "script": "안녕하세요. 오늘은 <span class=\"emphasis\">livedeck</span>를 소개합니다. <span class=\"action\">(청중을 본다)</span> 발표자 화면과 청중 화면을 한 번에 만드는 도구입니다.",
+      "ref": ""
+    },
+    {
+      "id": 2,
+      "layout": "CONTENT",
+      "title": "무엇을 해결하나",
+      "body": [
+        "발표자는 대본과 타이머를 본다",
+        "청중은 깔끔한 슬라이드만 본다",
+        "두 화면이 실시간으로 같이 넘어간다"
+      ],
+      "script": "발표할 때 대본과 슬라이드를 따로 관리하면 번거롭죠. <span class=\"pause\">(잠깐)</span> livedeck는 두 화면을 한 쌍으로 묶어 자동으로 동기화합니다.",
+      "ref": "참고: BroadcastChannel 기반 동기화"
+    },
+    {
+      "id": 3,
+      "layout": "SECTION",
+      "title": "어떻게 동작하나",
+      "script": "이제 동작 원리를 보겠습니다.",
+      "ref": ""
+    },
+    {
+      "id": 4,
+      "layout": "CONTENT",
+      "title": "동기화 구조",
+      "body": [
+        "발표자 뷰만 슬라이드 변경을 송신한다",
+        "청중 뷰는 수신만 한다",
+        "늦게 열어도 핸드셰이크로 현재 위치를 맞춘다"
+      ],
+      "script": "발표자 화면이 <span class=\"emphasis\">유일한 송신자</span>입니다. 청중 화면은 받기만 하므로 메시지가 꼬이지 않습니다.",
+      "ref": ""
+    },
+    {
+      "id": 5,
+      "layout": "CLOSING",
+      "title": "고맙습니다",
+      "subtitle": "you@example.com",
+      "script": "여기까지입니다. <span class=\"action\">(질문을 받는다)</span> 질문 있으실까요?",
+      "ref": ""
+    }
+  ]
+}

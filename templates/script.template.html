@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="{{LANG}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{TITLE}} (presenter)</title>
+  <style>
+    /* 발표자 뷰도 Ollama 라이트 톤으로 통일. 미리보기 iframe 영역만 어두운 무대 배경 허용. */
+    :root {
+      --canvas: #ffffff;
+      --primary: #000000;
+      --ink: #000000;
+      --charcoal: #525252;
+      --body: #737373;
+      --mute: #a3a3a3;
+      --surface-soft: #fafafa;
+      --surface-dark: #171717;
+      --hairline: #e5e5e5;
+      --hairline-strong: #d4d4d4;
+      --rounded-lg: 12px;
+      --rounded-full: 9999px;
+      --stage: #171717;
+      --font-display: 'Noto Sans KR', 'Nunito', 'Inter', system-ui, sans-serif;
+      --font-body: 'Noto Sans KR', 'Inter', system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%; background: var(--canvas); color: var(--ink);
+      font-family: var(--font-body); overflow: hidden;
+    }
+    .wrap { display: flex; height: 100vh; }
+
+    /* 75% iframe 미리보기 (어두운 무대 배경) */
+    .preview {
+      flex: 0 0 75%; background: var(--stage);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 24px; gap: 16px;
+    }
+    .preview .frame {
+      position: relative;
+      width: 100%; aspect-ratio: 16 / 9; background: #fff;
+      border-radius: var(--rounded-lg); overflow: hidden; border: 1px solid #000;
+    }
+    .preview iframe { width: 100%; height: 100%; border: 0; }
+
+    /* 펜·스포트라이트 오버레이. 비활성 시 pointer-events none 으로 미리보기를 가리지 않는다. */
+    .frame .overlay { position: absolute; inset: 0; pointer-events: none; }
+    .frame #penCanvas { z-index: 50; }
+    .frame #spotCanvas { z-index: 51; }
+    .frame.draw-active .overlay { cursor: crosshair; }
+    .preview .nextline {
+      width: 100%; color: rgba(255,255,255,0.7); font-size: 0.85rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .preview .nextline strong { color: #fff; font-weight: 600; }
+
+    /* 25% 대본 패널 (라이트 톤) */
+    .panel {
+      flex: 1; display: flex; flex-direction: column;
+      border-left: 1px solid var(--hairline); background: var(--canvas);
+    }
+    .panel header {
+      padding: 16px 20px; border-bottom: 1px solid var(--hairline);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel .counter { font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .panel .counter .total { color: var(--mute); font-weight: 400; }
+    .panel .timer { font-variant-numeric: tabular-nums; font-size: 1.1rem; color: var(--ink); }
+
+    .panel .script {
+      flex: 1; overflow-y: auto; padding: 24px 20px;
+      font-size: var(--script-size, 1.05rem); line-height: 1.7; color: var(--ink);
+    }
+    .panel .script .ref { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--hairline);
+      color: var(--body); font-size: 0.9rem; }
+    .panel .script .emphasis { font-weight: 600; }
+    .panel .script .action { color: var(--body); font-style: italic; }
+    .panel .script .pause { color: var(--mute); }
+
+    .panel .controls {
+      padding: 12px 20px; border-top: 1px solid var(--hairline);
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .pill {
+      border: 1px solid var(--hairline-strong); background: var(--canvas); color: var(--ink);
+      border-radius: var(--rounded-full); padding: 6px 14px; font-size: 0.85rem; cursor: pointer;
+    }
+    .pill.dark { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .hint { width: 100%; color: var(--body); font-size: 0.78rem; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="preview">
+      <div class="frame" id="frame">
+        <iframe id="audience" src="../index.html" title="audience preview"></iframe>
+        <canvas class="overlay" id="penCanvas"></canvas>
+        <canvas class="overlay" id="spotCanvas"></canvas>
+      </div>
+      <div class="nextline">다음: <strong id="nextPreview">-</strong></div>
+    </div>
+
+    <div class="panel">
+      <header>
+        <div class="counter"><span id="cur">1</span><span class="total"> / {{TOTAL_SLIDES}}</span></div>
+        <div class="timer" id="timer">00:00</div>
+      </header>
+      <div class="script" id="scriptArea"></div>
+      <div class="controls">
+        <button class="pill dark" id="prevBtn">이전</button>
+        <button class="pill dark" id="nextBtn">다음</button>
+        <button class="pill" id="fontMinus">글자 작게</button>
+        <button class="pill" id="fontPlus">글자 크게</button>
+        <button class="pill" id="resetTimer">타이머 리셋</button>
+        <button class="pill" id="fsBtn">전체화면</button>
+        <button class="pill" id="penBtn">펜</button>
+        <button class="pill" id="spotBtn">스포트라이트</button>
+        <button class="pill" id="clearBtn">지우기</button>
+        <button class="pill" id="pdfBtn">PDF 내보내기</button>
+        <div class="hint">방향키 또는 Space 이동 · Home/End 처음/끝 · F 전체화면 · P 펜 · S 스포트라이트 · E 지우기 · Esc 끄기 · PDF 내보내기는 청중 슬라이드만 인쇄 · 청중 창은 별도 탭/창으로 띄우세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* livedeck 동기화 계약 (DESIGN-PLAN.md 섹션 5). 발표자 뷰 = 단일 송신자. */
+    var CHANNEL = 'livedeck-sync';
+    var TOTAL_SLIDES = {{TOTAL_SLIDES}};
+    /* 동기화 전송 계층 (경계)
+       BroadcastChannel = 같은 브라우저 내 탭/창 동기화 (서버리스).
+       원격(webinar) 전환 시 아래 두 함수 내부만 교체하면 된다.
+       호출부는 syncSend / syncOnMessage 만 사용할 것. */
+    var channel = new BroadcastChannel(CHANNEL);
+    function syncSend(msg) { channel.postMessage(msg); }
+    function syncOnMessage(handler) { channel.onmessage = function (e) { handler(e.data); }; }
+    /* 전송 계층 경계 끝 */
+
+    /* 슬라이드별 대본 + 제목(다음 미리보기용). 생성 시 주입. */
+    var SLIDES = {{SCRIPT_DATA}};
+
+    var currentSlide = 1;
+
+    function clampSlide(n) {
+      n = parseInt(n, 10) || 1;
+      return Math.min(Math.max(1, n), TOTAL_SLIDES);
+    }
+
+    function renderScript(n) {
+      var area = document.getElementById('scriptArea');
+      var data = SLIDES[n] || { script: '', ref: '' };
+      var html = data.script || '';
+      if (data.ref) html += '<div class="ref">' + data.ref + '</div>';
+      area.innerHTML = html;
+      area.scrollTop = 0;
+      document.getElementById('cur').textContent = n;
+      var next = SLIDES[n + 1];
+      document.getElementById('nextPreview').textContent = next ? (next.title || ('슬라이드 ' + (n + 1))) : '(마지막)';
+    }
+
+    /* 발표자만 slideChange 송신 (5.1). 이동 시 항상 broadcast. */
+    function setSlide(n, broadcast) {
+      currentSlide = clampSlide(n);
+      renderScript(currentSlide);
+      /* 슬라이드 넘김 시 그림 자동 지우기. 양쪽 캔버스 클리어 + 청중 전파. */
+      annotate.clear(true);
+      if (broadcast !== false) syncSend({ type: 'slideChange', slide: currentSlide });
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); setSlide(currentSlide + 1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); setSlide(currentSlide - 1); }
+      else if (e.key === 'Home') { e.preventDefault(); setSlide(1); }
+      else if (e.key === 'End') { e.preventDefault(); setSlide(TOTAL_SLIDES); }
+      else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
+      else if (e.key === 'p' || e.key === 'P') { e.preventDefault(); annotate.setMode('pen'); }
+      else if (e.key === 's' || e.key === 'S') { e.preventDefault(); annotate.setMode('spotlight'); }
+      else if (e.key === 'e' || e.key === 'E') { e.preventDefault(); annotate.clear(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); annotate.setMode(null); }
+    });
+
+    /* 전체화면 토글 (F 키 또는 버튼). 발표자 뷰 문서 전체를 전체화면으로. */
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        (document.documentElement.requestFullscreen || function () {})
+          .call(document.documentElement);
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+    document.getElementById('fsBtn').addEventListener('click', function () { toggleFullscreen(); });
+
+    document.getElementById('prevBtn').addEventListener('click', function () { setSlide(currentSlide - 1); });
+    document.getElementById('nextBtn').addEventListener('click', function () { setSlide(currentSlide + 1); });
+
+    /* 폰트 크기 조절 (v1 기능) */
+    var scriptSize = 1.05;
+    function applyFont() { document.querySelector('.script').style.setProperty('--script-size', scriptSize + 'rem'); }
+    document.getElementById('fontPlus').addEventListener('click', function () { scriptSize = Math.min(2.0, scriptSize + 0.1); applyFont(); });
+    document.getElementById('fontMinus').addEventListener('click', function () { scriptSize = Math.max(0.7, scriptSize - 0.1); applyFont(); });
+
+    /* ── 펜·스포트라이트 (발표자 = 입력 캡처 + 로컬 렌더 + 단방향 송신) ──
+       전송은 syncSend 만 사용. 좌표는 0~1 정규화하여 청중 화면 크기에 무관하게 복원되게 한다. */
+    var annotate = (function () {
+      var COLOR = '#e00';
+      var SPOT_RADIUS = 0.12;   // 정규화 반지름 (프레임 너비 기준)
+      var frame = document.getElementById('frame');
+      var penCanvas = document.getElementById('penCanvas');
+      var spotCanvas = document.getElementById('spotCanvas');
+      var penCtx = penCanvas.getContext('2d');
+      var spotCtx = spotCanvas.getContext('2d');
+      var mode = null;          // null | 'pen' | 'spotlight'
+      var drawing = false;
+      var seg = [];             // 현재 펜 세그먼트 (정규화 점 누적)
+
+      function sizeCanvas(cv) {
+        var r = frame.getBoundingClientRect();
+        cv.width = Math.max(1, Math.round(r.width));
+        cv.height = Math.max(1, Math.round(r.height));
+      }
+      function resizeAll() { sizeCanvas(penCanvas); sizeCanvas(spotCanvas); }
+      window.addEventListener('resize', resizeAll);
+      resizeAll();
+
+      function normPoint(ev) {
+        var r = frame.getBoundingClientRect();
+        var x = (ev.clientX - r.left) / r.width;
+        var y = (ev.clientY - r.top) / r.height;
+        return [Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y))];
+      }
+
+      /* 펜: 정규화 점 배열을 자기 캔버스 크기로 복원해 선으로 잇는다. */
+      function drawSegment(points, color) {
+        if (!points || points.length < 1) return;
+        penCtx.strokeStyle = color || COLOR;
+        penCtx.lineWidth = 3;
+        penCtx.lineJoin = 'round';
+        penCtx.lineCap = 'round';
+        penCtx.beginPath();
+        for (var i = 0; i < points.length; i++) {
+          var px = points[i][0] * penCanvas.width;
+          var py = points[i][1] * penCanvas.height;
+          if (i === 0) penCtx.moveTo(px, py); else penCtx.lineTo(px, py);
+        }
+        penCtx.stroke();
+      }
+
+      /* 스포트라이트: 주변을 반투명 어둡게, 원 안만 비운다. */
+      function drawSpot(x, y) {
+        spotCtx.clearRect(0, 0, spotCanvas.width, spotCanvas.height);
+        spotCtx.save();
+        spotCtx.fillStyle = 'rgba(0,0,0,0.55)';
+        spotCtx.fillRect(0, 0, spotCanvas.width, spotCanvas.height);
+        var cx = x * spotCanvas.width;
+        var cy = y * spotCanvas.height;
+        var rad = SPOT_RADIUS * spotCanvas.width;
+        spotCtx.globalCompositeOperation = 'destination-out';
+        spotCtx.beginPath();
+        spotCtx.arc(cx, cy, rad, 0, Math.PI * 2);
+        spotCtx.fill();
+        spotCtx.restore();
+      }
+      function clearSpot() { spotCtx.clearRect(0, 0, spotCanvas.width, spotCanvas.height); }
+      function clearPen() { penCtx.clearRect(0, 0, penCanvas.width, penCanvas.height); }
+
+      /* 로컬 렌더 + 청중 송신 (단방향). */
+      function setMode(m) {
+        mode = (mode === m) ? null : m;   // 같은 버튼 다시 누르면 끔
+        frame.classList.toggle('draw-active', mode !== null);
+        penCanvas.style.pointerEvents = (mode !== null) ? 'auto' : 'none';
+        if (mode !== 'spotlight') clearSpot();
+        updateButtons();
+      }
+      function updateButtons() {
+        var p = document.getElementById('penBtn');
+        var s = document.getElementById('spotBtn');
+        if (p) p.classList.toggle('dark', mode === 'pen');
+        if (s) s.classList.toggle('dark', mode === 'spotlight');
+      }
+      function clear(broadcast) {
+        clearPen(); clearSpot(); seg = [];
+        if (broadcast) syncSend({ type: 'clear' });
+      }
+
+      penCanvas.addEventListener('pointerdown', function (ev) {
+        if (mode === 'pen') {
+          drawing = true; seg = [normPoint(ev)];
+          if (penCanvas.setPointerCapture) penCanvas.setPointerCapture(ev.pointerId);
+        }
+      });
+      penCanvas.addEventListener('pointermove', function (ev) {
+        var pt = normPoint(ev);
+        if (mode === 'spotlight') {
+          drawSpot(pt[0], pt[1]);
+          syncSend({ type: 'spotlight', x: pt[0], y: pt[1], on: true });
+          return;
+        }
+        if (mode === 'pen' && drawing) {
+          seg.push(pt);
+          /* 세그먼트 단위 전송: 직전 점부터 현재 점까지 짧은 선분을 송신 (단순·실시간). */
+          var last2 = seg.slice(-2);
+          drawSegment(last2, COLOR);
+          syncSend({ type: 'draw', mode: 'pen', points: last2, color: COLOR });
+        }
+      });
+      function endStroke() { drawing = false; seg = []; }
+      penCanvas.addEventListener('pointerup', endStroke);
+      penCanvas.addEventListener('pointercancel', endStroke);
+      penCanvas.addEventListener('pointerleave', function () {
+        if (mode === 'spotlight') { clearSpot(); syncSend({ type: 'spotlight', x: 0, y: 0, on: false }); }
+      });
+
+      return { setMode: setMode, clear: clear };
+    })();
+
+    document.getElementById('penBtn').addEventListener('click', function () { annotate.setMode('pen'); });
+    document.getElementById('spotBtn').addEventListener('click', function () { annotate.setMode('spotlight'); });
+    document.getElementById('clearBtn').addEventListener('click', function () { annotate.clear(true); });
+
+    /* ── PDF export (Phase B): 청중 뷰(iframe)를 브라우저 네이티브 인쇄 ──
+       청중 슬라이드만 깔끔히 인쇄된다(@media print 는 청중 뷰에 정의). 외부 라이브러리 없음. */
+    document.getElementById('pdfBtn').addEventListener('click', function () {
+      var iframe = document.getElementById('audience');
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (err) {
+        /* same-origin 인쇄 실패 시 안내. (정상 서빙 환경에선 same-origin 이라 동작) */
+        alert('청중 미리보기를 인쇄할 수 없습니다. 로컬 서버(python3 -m http.server)로 서빙 중인지 확인하세요.');
+      }
+    });
+
+    /* 5.5 핸드셰이크: 청중 뷰가 질의하면 현재 슬라이드 회신 */
+    syncOnMessage(function (data) {
+      if (data && data.type === 'requestSync') {
+        syncSend({ type: 'slideChange', slide: currentSlide });
+      }
+    });
+
+    /* 경과 타이머 (v1 기능) */
+    var elapsed = 0, timerId = null;
+    function tick() {
+      elapsed += 1;
+      var mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      var ss = String(elapsed % 60).padStart(2, '0');
+      document.getElementById('timer').textContent = mm + ':' + ss;
+    }
+    function startTimer() { if (!timerId) timerId = setInterval(tick, 1000); }
+    document.getElementById('resetTimer').addEventListener('click', function () { elapsed = 0; document.getElementById('timer').textContent = '00:00'; });
+
+    setSlide(currentSlide, false);
+    startTimer();
+  </script>
+</body>
+</html>
