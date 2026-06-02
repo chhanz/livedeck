@@ -20,7 +20,7 @@ TPL = ROOT / "templates"
 THEMES = ROOT / "themes"
 
 LAYOUTS = {"COVER", "CONTENT", "SECTION", "CLOSING", "IMAGE",
-           "STAT", "CARDS", "TABLE", "CALLOUT", "COMPARE"}
+           "STAT", "CARDS", "TABLE", "CALLOUT", "COMPARE", "TIMELINE", "CODE"}
 TONES = {"info", "success", "warn", "danger", "accent"}
 
 
@@ -143,6 +143,46 @@ def render_compare(slide, parts):
     parts.append("</div>")
 
 
+def render_timeline(slide, parts):
+    """TIMELINE: 가로 단계. steps: [{label?, title, body?(str|list), tone?}].
+       각 단계는 번호 노드 + 세로 카드(제목/본문). 연결선은 CSS 가 그린다."""
+    parts.append("<h2>%s</h2>" % inline(slide.get("title", "")))
+    parts.append('<div class="timeline">')
+    for i, st in enumerate(slide.get("steps", []), 1):
+        tone = st.get("tone", "accent")
+        tone = tone if tone in TONES else "accent"
+        parts.append('<div class="tl-step" data-tone="%s">' % tone)
+        parts.append('<div class="tl-node">%d</div>' % i)
+        parts.append('<div class="tl-card">')
+        if st.get("label"):
+            parts.append('<div class="tl-label">%s</div>' % inline(st["label"]))
+        parts.append('<div class="tl-title">%s</div>' % inline(st.get("title", "")))
+        body = st.get("body")
+        if isinstance(body, list):
+            parts.append(li_list(body))
+        elif body:
+            parts.append('<p class="tl-body">%s</p>' % inline(body))
+        parts.append("</div></div>")
+    parts.append("</div>")
+
+
+def render_code(slide, parts):
+    """CODE: 어두운 코드 블록. lines: [..] 또는 code: "여러 줄 문자열".
+       intro(선택) 한 줄 설명. 줄별로 렌더하여 들여쓰기를 보존한다."""
+    parts.append("<h2>%s</h2>" % inline(slide.get("title", "")))
+    if slide.get("intro"):
+        parts.append('<p class="code-intro">%s</p>' % inline(slide["intro"]))
+    lines = slide.get("lines")
+    if lines is None:
+        code = slide.get("code", "")
+        lines = code.split("\n") if code else []
+    parts.append('<div class="code-block"><pre>')
+    for ln in lines:
+        # 코드는 인라인 서식을 적용하지 않고 그대로 이스케이프 (들여쓰기·기호 보존)
+        parts.append('<span class="code-line">%s</span>' % esc(ln) if ln != "" else '<span class="code-line"> </span>')
+    parts.append("</pre></div>")
+
+
 def render_slide(slide):
     n = slide["id"]
     layout = slide.get("layout", "CONTENT")
@@ -198,6 +238,10 @@ def render_slide(slide):
         render_callout(slide, parts)
     elif layout == "COMPARE":
         render_compare(slide, parts)
+    elif layout == "TIMELINE":
+        render_timeline(slide, parts)
+    elif layout == "CODE":
+        render_code(slide, parts)
     else:  # CONTENT
         parts.append("<h2>%s</h2>" % inline(slide.get("title", "")))
         parts.append(li_list(slide.get("body", [])))
@@ -208,19 +252,40 @@ def render_slide(slide):
 def load_theme(name):
     """themes/<name>.json 을 읽어 (vars_css, fonts_html, css, stage_bg) 를 만든다.
        이름이 없거나 파일이 없으면 베이스 토큰만 쓰는 빈 테마로 폴백한다."""
+    empty = {"vars": "", "fonts": "", "css": "", "stage_bg": "", "assets": []}
     if not name:
-        return {"vars": "", "fonts": "", "css": "", "stage_bg": ""}
+        return empty
     path = THEMES / ("%s.json" % name)
     if not path.exists():
         print("경고: 테마 '%s' 없음 → 기본 토큰 사용" % name)
-        return {"vars": "", "fonts": "", "css": "", "stage_bg": ""}
+        return empty
     data = json.loads(path.read_text(encoding="utf-8"))
     decls = "".join("      %s: %s;\n" % (k, v) for k, v in data.get("vars", {}).items())
     stage_bg = data.get("stage_bg", "")
     if stage_bg:
         decls += "      --stage-bg: %s;\n" % stage_bg
     vars_css = ":root {\n%s    }" % decls if decls else ""
-    return {"vars": vars_css, "fonts": data.get("fonts", ""), "css": data.get("css", ""), "stage_bg": stage_bg, "name": data.get("name", name)}
+    return {
+        "vars": vars_css, "fonts": data.get("fonts", ""), "css": data.get("css", ""),
+        "stage_bg": stage_bg, "name": data.get("name", name),
+        "assets": data.get("assets", []),  # themes/ 기준 상대경로 목록
+    }
+
+
+def copy_theme_assets(th, out):
+    """테마가 선언한 에셋을 <out_dir>/assets/ 로 복사한다. HTML 에선 assets/<파일명> 로 참조."""
+    assets = th.get("assets") or []
+    if not assets:
+        return
+    import shutil
+    dst_dir = out / "assets"
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    for rel in assets:
+        src = THEMES / rel
+        if src.exists():
+            shutil.copy(src, dst_dir / src.name)
+        else:
+            print("경고: 테마 에셋 없음 → %s" % src)
 
 
 def build_footer(footer):
@@ -282,6 +347,7 @@ def build(slides, out_dir, title, lang, footer, theme="vivid"):
 
     (out / "index.html").write_text(audience, encoding="utf-8")
     (out / "view" / "index.html").write_text(presenter, encoding="utf-8")
+    copy_theme_assets(th, out)
     print("생성: %s (슬라이드 %d장, 테마 %s)" % (out, total, theme))
 
 

@@ -44,6 +44,8 @@ slides = [
 | TABLE | title / headers[] / rows[[]] (각 행 첫 셀은 강조) |
 | CALLOUT | title / tone / icon? / heading? / body(str\|list) |
 | COMPARE | title / left{heading,tone?,body[]} / right{...} |
+| TIMELINE | title / steps[{label?, title, body(str\|list)?, tone?}] |
+| CODE | title / intro? / lines[] (또는 code 문자열) |
 | CLOSING | title / subtitle |
 
 모든 텍스트 필드는 인라인 서식을 받는다: `**굵게**` / `==하이라이트==` / `` `코드` ``. tone 값: accent/info/success/warn/danger.
