@@ -4,25 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{TITLE}} (presenter)</title>
+  {{THEME_FONTS}}
   <style>
-    /* 발표자 뷰도 Ollama 라이트 톤으로 통일. 미리보기 iframe 영역만 어두운 무대 배경 허용. */
+    /* 발표자 뷰는 라이트 톤 패널. 미리보기 iframe 이 청중 디자인(테마)을 그대로 보여준다.
+       패널 chrome(강조 pill·카운터)은 테마 강조색/폰트를 따라간다. */
     :root {
       --canvas: #ffffff;
-      --primary: #000000;
-      --ink: #000000;
-      --charcoal: #525252;
-      --body: #737373;
-      --mute: #a3a3a3;
-      --surface-soft: #fafafa;
-      --surface-dark: #171717;
-      --hairline: #e5e5e5;
-      --hairline-strong: #d4d4d4;
-      --rounded-lg: 12px;
+      --ink: #0f172a;
+      --charcoal: #334155;
+      --body: #475569;
+      --mute: #94a3b8;
+      --surface-soft: #f8fafc;
+      --surface-dark: #0f172a;
+      --hairline: #e2e8f0;
+      --hairline-strong: #cbd5e1;
+      --accent: #4f46e5;
+      --primary: var(--accent);
+      --rounded-lg: 14px;
       --rounded-full: 9999px;
-      --stage: #171717;
-      --font-display: 'Noto Sans KR', 'Nunito', 'Inter', system-ui, sans-serif;
+      --stage: #10131a;
+      --font-display: 'Noto Sans KR', 'Inter', system-ui, sans-serif;
       --font-body: 'Noto Sans KR', 'Inter', system-ui, sans-serif;
     }
+    /* 테마 토큰 주입 (강조색·폰트가 패널에도 반영됨) */
+    {{THEME_VARS}}
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       height: 100%; background: var(--canvas); color: var(--ink);

@@ -1,0 +1,28 @@
+{
+  "name": "vivid",
+  "label": "Vivid — 컬러 강조형 (기본)",
+  "description": "흰 캔버스에 인디고 강조 + 시맨틱 컬러. 카드/통계/표가 그림자와 라운드로 또렷하게 살아난다. 범용 비즈니스·기술 발표.",
+  "stage_bg": "#0b0d12",
+  "fonts": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin><link href=\"https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap\" rel=\"stylesheet\">",
+  "vars": {
+    "--canvas": "#ffffff",
+    "--ink": "#0f172a",
+    "--charcoal": "#334155",
+    "--body": "#475569",
+    "--mute": "#94a3b8",
+    "--surface-soft": "#f8fafc",
+    "--surface-card": "#ffffff",
+    "--surface-dark": "#0f172a",
+    "--hairline": "#e2e8f0",
+    "--hairline-strong": "#cbd5e1",
+    "--accent": "#4f46e5",
+    "--accent-strong": "#4338ca",
+    "--accent-soft": "#eef2ff",
+    "--accent-ink": "#312e81",
+    "--font-display": "'Plus Jakarta Sans', 'Noto Sans KR', system-ui, sans-serif",
+    "--font-body": "'Noto Sans KR', 'Plus Jakarta Sans', system-ui, sans-serif",
+    "--track-display": "-0.02em",
+    "--weight-display": "800"
+  },
+  "css": ""
+}
