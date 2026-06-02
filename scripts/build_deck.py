@@ -92,18 +92,23 @@ def render_table(slide, parts):
     parts.append("<h2>%s</h2>" % inline(slide.get("title", "")))
     headers = slide.get("headers", [])
     rows = slide.get("rows", [])
-    parts.append('<div class="table-wrap"><table>')
+    # 세로 공간을 차지하는 행 수(헤더 + 본문)로 밀도 단계를 정한다. 템플릿이 data-rows 로 폰트·패딩 축소.
+    total_rows = (1 if headers else 0) + len(rows)
+    parts.append('<div class="table-wrap" data-rows="%d"><table>' % total_rows)
     if headers:
         parts.append("<thead><tr>")
         for h in headers:
-            parts.append("<th>%s</th>" % inline(h))
+            parts.append('<th scope="col">%s</th>' % inline(h))
         parts.append("</tr></thead>")
     parts.append("<tbody>")
     for row in rows:
         parts.append("<tr>")
         for ci, cell in enumerate(row):
-            tag = "th" if ci == 0 else "td"
-            parts.append("<%s>%s</%s>" % (tag, inline(cell), tag))
+            # 각 행의 첫 셀은 행 헤더(th scope=row), 나머지는 데이터 셀. 스크린리더 표 탐색 보조.
+            if ci == 0:
+                parts.append('<th scope="row">%s</th>' % inline(cell))
+            else:
+                parts.append("<td>%s</td>" % inline(cell))
         parts.append("</tr>")
     parts.append("</tbody></table></div>")
 
@@ -357,16 +362,16 @@ def main():
     ap.add_argument("out_dir")
     ap.add_argument("--title", default="Sample Deck")
     ap.add_argument("--lang", default="ko")
-    ap.add_argument("--theme", default="vivid", help="themes/ 의 테마 이름 (vivid/editorial/bold/orange)")
+    # default=None 으로 두어 "CLI 에서 명시했는지" 를 구분한다.
+    ap.add_argument("--theme", default=None, help="themes/ 의 테마 이름 (vivid/editorial/bold/orange). 명시하면 slides.json 의 theme 키보다 우선.")
     args = ap.parse_args()
 
     data = json.loads(Path(args.slides_json).read_text(encoding="utf-8"))
     slides = data["slides"] if isinstance(data, dict) else data
     footer = data.get("footer") if isinstance(data, dict) else None
-    # slides.json 의 최상위 "theme" 키가 있으면 CLI 기본값을 덮어쓴다 (CLI 명시 시 CLI 우선은 사용자가 직접 판단).
-    theme = args.theme
-    if isinstance(data, dict) and data.get("theme"):
-        theme = data["theme"]
+    # 테마 우선순위: CLI --theme 명시 > slides.json 의 "theme" 키 > 기본값 "vivid".
+    json_theme = data.get("theme") if isinstance(data, dict) else None
+    theme = args.theme or json_theme or "vivid"
     build(slides, args.out_dir, args.title, args.lang, footer, theme)
 
 
