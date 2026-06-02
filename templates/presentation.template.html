@@ -256,7 +256,8 @@
     @keyframes revealUp { from { opacity: 0; transform: translateY(34px); } to { opacity: 1; transform: translateY(0); } }
     .slide.active > h1, .slide.active > h2, .slide.active > .eyebrow, .slide.active > .rule, .slide.active > .subtitle,
     .slide.active li, .slide.active .stat, .slide.active .card, .slide.active .callout,
-    .slide.active .compare-col, .slide.active tbody tr, .slide.active .img-grid figure {
+    .slide.active .compare-col, .slide.active tbody tr, .slide.active .img-grid figure,
+    .slide.active .tl-step, .slide.active .code-block {
       opacity: 0; animation: revealUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     .slide.active > .eyebrow { animation-delay: 0.02s; }
@@ -270,6 +271,58 @@
     .slide.active li:nth-child(5), .slide.active .stat:nth-child(5), .slide.active .card:nth-child(5), .slide.active tbody tr:nth-child(5) { animation-delay: 0.46s; }
     .slide.active li:nth-child(n+6), .slide.active .stat:nth-child(n+6), .slide.active tbody tr:nth-child(n+6) { animation-delay: 0.54s; }
     .slide.active .callout { animation-delay: 0.16s; }
+    .slide.active .tl-step:nth-child(1) { animation-delay: 0.14s; }
+    .slide.active .tl-step:nth-child(2) { animation-delay: 0.24s; }
+    .slide.active .tl-step:nth-child(3) { animation-delay: 0.34s; }
+    .slide.active .tl-step:nth-child(4) { animation-delay: 0.44s; }
+    .slide.active .tl-step:nth-child(n+5) { animation-delay: 0.54s; }
+    .slide.active .code-block { animation-delay: 0.14s; }
+
+    /* ── TIMELINE: 가로 단계, 번호 노드 + 연결선 + 세로 카드 ── */
+    .slide[data-layout="TIMELINE"] { justify-content: flex-start; }
+    .timeline {
+      flex: 1; display: flex; align-items: stretch; justify-content: space-between;
+      gap: 30px; align-content: center;
+    }
+    .tl-step { flex: 1; position: relative; display: flex; flex-direction: column; align-items: stretch; padding-top: 70px; }
+    /* 연결선: 노드 중심 높이(35px)에 가로선 */
+    .tl-step::before {
+      content: ""; position: absolute; top: 34px; left: 50%; right: calc(-1 * (30px + 50%) + 50%);
+      width: calc(100% + 30px); height: 3px; background: var(--hairline); z-index: 0;
+    }
+    .tl-step:last-child::before { display: none; }
+    .tl-node {
+      position: absolute; top: 0; left: 0; width: 68px; height: 68px; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--tone, var(--accent)); color: #fff;
+      font-family: var(--font-display); font-weight: 800; font-size: 30px;
+      border-radius: var(--rounded-full); box-shadow: var(--shadow-card);
+    }
+    .tl-card {
+      flex: 1; background: var(--surface-card); border: var(--card-border);
+      border-left: var(--card-accent-edge) solid var(--tone, var(--accent));
+      border-radius: var(--rounded-lg); box-shadow: var(--shadow-card); padding: 28px 26px;
+    }
+    .tl-label { font-size: 19px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tone, var(--accent)); margin-bottom: 10px; }
+    .tl-title { font-family: var(--font-display); font-weight: 700; font-size: 28px; color: var(--ink); line-height: 1.2; margin-bottom: 12px; }
+    .tl-body { font-size: 22px; color: var(--charcoal); line-height: 1.45; }
+    .tl-card ul { margin: 0; }
+    .tl-card li { font-size: 22px; color: var(--charcoal); margin: 10px 0; }
+    .tl-card li::before { background: var(--tone, var(--accent)); }
+
+    /* ── CODE: 어두운 코드 블록 ── */
+    .slide[data-layout="CODE"] { justify-content: flex-start; }
+    .code-intro { font-size: 28px; color: var(--body); margin-bottom: 28px; line-height: 1.4; }
+    .code-block {
+      flex: 1; min-height: 0; background: #1e1e2e; border-radius: var(--rounded-lg);
+      box-shadow: var(--shadow-card); padding: 40px 44px; overflow: hidden;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .code-block pre { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+    .code-line {
+      font-family: var(--font-code); font-size: 28px; line-height: 1.5;
+      color: #cdd6f4; white-space: pre; tab-size: 2;
+    }
 
     /* 3) 테마 시그니처 장식 CSS 주입 */
     {{THEME_CSS}}
@@ -278,7 +331,8 @@
 
     @media (prefers-reduced-motion: reduce) {
       .slide.active > *, .slide.active li, .slide.active .stat, .slide.active .card,
-      .slide.active .callout, .slide.active .compare-col, .slide.active tbody tr, .slide.active .img-grid figure {
+      .slide.active .callout, .slide.active .compare-col, .slide.active tbody tr, .slide.active .img-grid figure,
+      .slide.active .tl-step, .slide.active .code-block {
         animation: none !important; opacity: 1 !important;
       }
     }
@@ -298,7 +352,8 @@
       .slide:last-child { break-after: auto; page-break-after: auto; }
       .slide[data-layout="IMAGE"] { display: grid !important; }
       .slide.active > *, .slide.active li, .slide.active .stat, .slide.active .card,
-      .slide.active .callout, .slide.active .compare-col, .slide.active tbody tr, .slide.active .img-grid figure {
+      .slide.active .callout, .slide.active .compare-col, .slide.active tbody tr, .slide.active .img-grid figure,
+      .slide.active .tl-step, .slide.active .code-block {
         animation: none !important; opacity: 1 !important;
       }
       .progress-track, .annot-overlay, #penCanvas, #spotCanvas, .deck-footer { display: none !important; }
